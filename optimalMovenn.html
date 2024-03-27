@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic-Tac-Toe Minimax pour Plateau N x N</title>
+</head>
+<body>
+    <label for="boardSize">Taille du plateau (N):</label>
+    <input type="number" id="boardSize" value="3" min="3" max="10" step="1"/>
+    <br/>
+    <input type="file" id="fileInput" />
+    <script>
+        let joueur = 'X', adversaire = 'O';
+
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const n = parseInt(document.getElementById('boardSize').value); // Récupère la taille du plateau
+            joueur = 'X';
+            adversaire = 'O';
+            
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const content = e.target.result;
+                const configurations = content.split('\n');
+
+                const startTime = performance.now();
+
+                configurations.forEach((configuration, index) => {
+                    if (configuration.trim()) {
+                        const { tableau, joueurSuivant } = ligneVersTableau(configuration.trim(), n);
+                        console.log(`Configuration #${index + 1}: ${configuration}`);
+                        const bestMove = trouverMeilleurMouvement(tableau, joueurSuivant, n);
+                        console.log(`Le meilleur mouvement est à la ligne ${bestMove.row + 1}, colonne ${bestMove.col + 1}`);
+                    }
+                });
+
+                const endTime = performance.now();
+                console.log(`Temps total écoulé pour tous les tests: ${(endTime - startTime).toFixed(2)} ms`);
+            };
+            reader.readAsText(file);
+        });
+
+        function ligneVersTableau(ligne, n) {
+    let tableau = Array.from({ length: n }, () => Array(n).fill(''));
+    let joueurSuivant = ligne[0];
+    let index = 1;
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            tableau[i][j] = ligne[index] === ' ' ? '' : ligne[index]; // Assurez-vous que '_' représente une cellule vide
+            index++;
+        }
+    }
+    return { tableau, joueurSuivant };
+}
+
+
+function estPlein(board) {
+    return board.every(row => row.every(cell => cell !== ' ')); // Assurez-vous que '' représente une cellule vide
+}
+
+
+        function evaluation(b, n, joueur, adversaire) {
+            for (let row = 0; row < n; row++) {
+                if (b[row].every(cell => cell === joueur)) return +10;
+                if (b[row].every(cell => cell === adversaire)) return -10;
+            }
+
+            for (let col = 0; col < n; col++) {
+                if (b.map(row => row[col]).every(cell => cell === joueur)) return +10;
+                if (b.map(row => row[col]).every(cell => cell === adversaire)) return -10;
+            }
+
+            let diag1 = [], diag2 = [];
+            for (let i = 0; i < n; i++) {
+                diag1.push(b[i][i]);
+                diag2.push(b[i][n - 1 - i]);
+            }
+            if (diag1.every(cell => cell === joueur) || diag2.every(cell => cell === joueur)) return +10;
+            if (diag1.every(cell => cell === adversaire) || diag2.every(cell => cell === adversaire)) return -10;
+
+            return 0;
+        }
+
+        function estTerminal(board, n) {
+            return evaluation(board, n) !== 0 || estPlein(board);
+        }
+
+        function minimax(board, depth, isMax, n) {
+            let score = evaluation(board, n);
+
+            if (score == 10) return score - depth;
+            if (score == -10) return score + depth;
+            if (estPlein(board)) return 0;
+
+            if (isMax) {
+                let best = -1000;
+                for (let i = 0; i < n; i++) {
+                    for (let j = 0; j < n; j++) {
+                        if (board[i][j] == '') {
+                            board[i][j] = joueur;
+                            best = Math.max(best, minimax(board, depth + 1, !isMax, n));
+                            board[i][j] = '';
+                        }
+                    }
+                }
+                return best;
+            } else {
+                let best = 1000;
+                for (let i = 0; i < n; i++) {
+                    for (let j = 0; j < n; j++) {
+                        if (board[i][j] == '') {
+                            board[i][j] = adversaire;
+                            best = Math.min(best, minimax(board, depth + 1, !isMax, n));
+                            board[i][j] = '';
+                        }
+                    }
+                }
+                return best;
+            }
+        }
+
+        function trouverMeilleurMouvement(board, currentPlayer, n) {
+            let bestVal = currentPlayer == joueur ? -1000 : 1000;
+            let bestMove = { row: -1, col: -1 };
+            let isMax = currentPlayer === joueur;
+
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (board[i][j] == '') {
+                        board[i][j] = currentPlayer;
+                        let moveVal = minimax(board, 0, !isMax, n);
+                        board[i][j] = '';
+                        if (isMax && moveVal > bestVal) {
+                            bestMove = {row: i, col: j};
+                            bestVal = moveVal;
+                        } else if (!isMax && moveVal < bestVal) {
+                            bestMove = {row: i, col: j};
+                            bestVal = moveVal;
+                        }
+                    }
+                }
+            }
+            return bestMove;
+        }
+    </script>
+</body>
+</html>
